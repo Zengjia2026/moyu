@@ -18,7 +18,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-class MoyuVpnService : VpnService(), TunInterface {
+class MoyuVpnService : VpnService() {
 
     companion object {
         const val ACTION_CONNECT = "com.zengjia.moyu.CONNECT"
@@ -39,6 +39,14 @@ class MoyuVpnService : VpnService(), TunInterface {
     private val running = AtomicBoolean(false)
     private var tun: ParcelFileDescriptor? = null
     private var trafficThread: Thread? = null
+
+    private val tunInterface = object : TunInterface {
+        override fun protect(fd: Int) {
+            this@MoyuVpnService.protect(fd)
+        }
+
+        override fun resolverProcess(protocol: Int, source: String, target: String, uid: Int): String = ""
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -91,7 +99,7 @@ class MoyuVpnService : VpnService(), TunInterface {
 
             Clash.startTUN(
                 fd = tun!!.fd,
-                cb = this,
+                cb = tunInterface,
                 device = "moyu-vpn",
                 stack = "system",
                 address = "172.19.0.1/30",
@@ -169,10 +177,6 @@ class MoyuVpnService : VpnService(), TunInterface {
         executor.shutdownNow()
         super.onDestroy()
     }
-
-    override fun protect(fd: Int): Boolean = super.protect(fd)
-
-    override fun resolverProcess(protocol: Int, source: String, target: String, uid: Int): String = ""
 
     private fun sendState(state: String, message: String) {
         sendBroadcast(Intent(ACTION_STATE).setPackage(packageName).apply {
