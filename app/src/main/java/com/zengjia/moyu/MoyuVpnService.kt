@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import io.github.oviron.libmihomo.Clash
 import io.github.oviron.libmihomo.TunInterface
 import org.json.JSONObject
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -74,13 +75,25 @@ class MoyuVpnService : VpnService() {
             Clash.load(applicationInfo.nativeLibraryDir)
             Clash.assertReady()
 
+            // libmihomo v0.3.7 固定从 <home-dir>/config.yaml 读取配置。
+            // 兼容旧版本已经导入到 files/profiles/active.yaml 的配置文件。
+            val sourceProfile = File(profilePath)
+            require(sourceProfile.isFile && sourceProfile.length() > 0) { "配置文件不存在或为空" }
+            val mihomoConfig = File(filesDir, "config.yaml")
+            if (sourceProfile.canonicalPath != mihomoConfig.canonicalPath) {
+                sourceProfile.copyTo(mihomoConfig, overwrite = true)
+            }
+
             val setupLatch = CountDownLatch(1)
             var setupError: String? = null
-            val home = filesDir.absolutePath.replace("\\", "\\\\").replace("\"", "\\\"")
-            val profile = profilePath.replace("\\", "\\\\").replace("\"", "\\\"")
+            val initParams = JSONObject()
+                .put("home-dir", filesDir.absolutePath)
+                .put("version", Build.VERSION.SDK_INT)
+                .toString()
+
             Clash.quickSetup(
-                initParams = "{\"homeDir\":\"$home\"}",
-                setupParams = "{\"profile\":\"$profile\"}"
+                initParams = initParams,
+                setupParams = "{}"
             ) { result ->
                 setupError = result?.takeIf { it.isNotBlank() }
                 setupLatch.countDown()
