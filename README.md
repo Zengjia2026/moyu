@@ -32,6 +32,8 @@ gradle :app:assembleDebug
 
 APK：`app/build/outputs/apk/debug/app-debug.apk`
 
+仓库已配置 GitHub Actions 自动构建：提交到 `main` 后会生成 `moyu-vpn-debug-apk` Artifact。
+
 ## 使用
 
 1. 安装 APK。
