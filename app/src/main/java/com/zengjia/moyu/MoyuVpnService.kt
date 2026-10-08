@@ -170,9 +170,7 @@ class MoyuVpnService : VpnService(), TunInterface {
         super.onDestroy()
     }
 
-    override fun protect(fd: Int) {
-        super.protect(fd)
-    }
+    override fun protect(fd: Int): Boolean = super.protect(fd)
 
     override fun resolverProcess(protocol: Int, source: String, target: String, uid: Int): String = ""
 
